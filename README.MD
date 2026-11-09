@@ -19,7 +19,7 @@
 ## 🚀 快速启动指南 
 1. **前端**：在'medaisystem'路径下 `npm install` -> `npm run serve`
 2. **业务后端**：导入 `db.sql` 至 MySQL，修改 `application.yml` 中的数据库配置，运行 SpringBoot 启动类。
-3. **AI 服务端**：`cd ai-service` -> `pip install -r requirements.txt` -> 在 `.env` 文件中配置 `DASHSCOPE_API_KEY`（通义千问的KEY） -> 运行`server.py`
+3. **AI 服务端**：`cd medagent` -> `pip install -r requirements.txt` -> 在 `.env` 文件中配置 `DASHSCOPE_API_KEY`（通义千问的KEY） -> 运行`server.py`
 
 ## 🔒 安全说明
 本项目源码已进行脱敏处理，未包含任何真实的大模型 API Key 或数据库密码，请自行配置 `.env` 文件。
