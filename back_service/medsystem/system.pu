@@ -1,0 +1,71 @@
+@startuml MedicalImagingDiagnosisSequenceDiagram
+
+skinparam DefaultFontSize 40
+skinparam ActorFontSize 40
+
+
+actor 医生 as Doctor
+participant "Vue前端" as Frontend
+participant "SpringBoot后端" as SpringBoot
+participant "Python AI服务" as PythonAI
+database "LocalStorage" as Storage
+
+== 1. 影像上传与验证 ==
+
+Doctor -> Frontend: 选择医学影像文件
+Frontend -> Frontend: handleFileUpload()
+Frontend -> Frontend: 文件类型和大小验证
+Frontend -> Frontend: 生成Data URL预览
+Frontend -> Storage: 保存imagePreview到localStorage
+
+Doctor -> Frontend: 点击"开始诊断"
+Frontend -> Frontend: 设置loading状态
+Frontend -> Storage: 保存loading状态到localStorage
+
+Frontend -> SpringBoot: POST /api/ai/image-diagnosis
+note right: FormData: image文件 + doctorInfo JSON
+
+== 2. 后端处理与AI服务调用 ==
+
+SpringBoot -> SpringBoot: 接收MultipartFile
+SpringBoot -> SpringBoot: 文件验证(空文件、类型、10MB大小)
+SpringBoot -> SpringBoot: 解析doctorInfo JSON
+SpringBoot -> SpringBoot: 生成requestId\n记录pendingRequests
+
+SpringBoot -> PythonAI: POST /image-diagnosis
+note right: {requestId, imageData(base64),\nimageName, doctorInfo, callbackUrl}
+
+PythonAI --> SpringBoot: 立即返回{"success": true, "message": "处理中"}
+SpringBoot --> Frontend: 立即返回CompletableFuture
+
+== 3. AI影像分析与异步回调 ==
+
+PythonAI -> PythonAI: base64解码为二进制数据
+PythonAI -> PythonAI: MedicalImageDiagnosis.diagnose_from_bytes()
+note right: AI模型进行深度影像分析\n(设置600秒超时)
+
+PythonAI -> PythonAI: 构建诊断结果数据
+PythonAI -> SpringBoot: POST /image-diagnosis-callback
+note right: {requestId, content, type: "IMAGE_DIAGNOSIS"}
+
+SpringBoot -> SpringBoot: 从pendingRequests获取CompletableFuture
+SpringBoot -> SpringBoot: 构建AISessionResponse\n设置诊断结果数据
+SpringBoot -> SpringBoot: future.complete(response)\n移除pending记录
+
+SpringBoot --> Frontend: **异步回调完成**
+
+== 4. 前端结果展示与状态保存 ==
+
+Frontend -> Frontend: 接收诊断结果
+Frontend -> Frontend: 格式化诊断结果文本
+note right: 换行、加粗、斜体处理
+
+Frontend -> Frontend: 显示诊断报告
+Frontend -> Frontend: 显示诊断时间和处理时长
+Frontend -> Frontend: 清除loading状态
+
+Frontend -> Storage: 保存diagnosisResult\ndiagnosisTime, processingTime
+
+Doctor -> Frontend: 查看诊断报告
+
+@enduml
